@@ -1,0 +1,40 @@
+receivers:
+  otlp:
+    protocols:
+      grpc:
+      http:
+
+extensions:
+  basicauth/prom:
+    client_auth:
+      username: ${env:PROM_USERNAME}
+      password: ${env:PROM_PASSWORD}
+
+  basicauth/loki:
+    client_auth:
+      username: ${env:LOKI_USERNAME}
+      password: ${env:LOKI_PASSWORD}
+
+exporters:
+  debug:
+    verbosity: detailed
+
+  prometheusremotewrite:
+    endpoint: ${env:PROM_ENDPOINT}
+    auth:
+      authenticator: basicauth/prom
+
+  otlphttp/loki:
+    endpoint: ${env:LOKI_ENDPOINT}
+    auth:
+      authenticator: basicauth/loki
+
+service:
+  extensions: [basicauth/prom, basicauth/loki]
+  pipelines:
+    metrics:
+      receivers: [otlp]
+      exporters: [prometheusremotewrite, debug]
+    logs:
+      receivers: [otlp]
+      exporters: [otlphttp/loki, debug]
